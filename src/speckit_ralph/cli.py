@@ -29,14 +29,9 @@ ERRORS_LOG_FILE = "errors.log"
 RUNS_DIR_NAME = "runs"
 
 
-def resolve_root(root: Path | None) -> Path:
-    """Resolve project root directory."""
-    return root if root is not None else Path.cwd()
-
-
 def get_ralph_dir(root: Path | None = None) -> Path:
-    """Get the .speckit-ralph directory path."""
-    return resolve_root(root) / RALPH_DIR_NAME
+    """Get the .speckit-ralph directory path, defaulting to current directory."""
+    return (root or Path.cwd()) / RALPH_DIR_NAME
 
 
 def get_templates_dir() -> Path:
@@ -127,15 +122,10 @@ def build_prompt(
     spec: str | None = typer.Option(None, "--spec", "-S", help="Spec directory path (overrides branch detection)"),
 ) -> None:
     """Generate Ralph prompt from template."""
-    args = []
-    if output:
-        args.extend(["--output", str(output)])
+    args = ["--output", str(output)] if output else []
+    env = {"RALPH_SPEC_DIR": spec} if spec else None
 
-    env = {}
-    if spec:
-        env["RALPH_SPEC_DIR"] = spec
-
-    sys.exit(run_script("build-prompt.sh", args=args, env=env if env else None))
+    sys.exit(run_script("build-prompt.sh", args=args, env=env))
 
 
 @app.command()
@@ -154,24 +144,20 @@ def init(
     root: Path | None = typer.Option(None, "--root", "-r", help="Project root directory"),
 ) -> None:
     """Initialize .speckit-ralph directory with default files."""
-    root = resolve_root(root)
     ralph_dir = get_ralph_dir(root)
-    runs_dir = ralph_dir / RUNS_DIR_NAME
     templates_dir = get_templates_dir()
 
-    # Create directories
     ralph_dir.mkdir(parents=True, exist_ok=True)
-    runs_dir.mkdir(parents=True, exist_ok=True)
+    (ralph_dir / RUNS_DIR_NAME).mkdir(parents=True, exist_ok=True)
 
-    # Copy templates if files don't exist
-    template_mapping = {
-        "guardrails.md": GUARDRAILS_FILE,
-        "activity.md": ACTIVITY_LOG_FILE,
-        "errors.md": ERRORS_LOG_FILE,
-    }
+    template_files = [
+        ("guardrails.md", GUARDRAILS_FILE),
+        ("activity.md", ACTIVITY_LOG_FILE),
+        ("errors.md", ERRORS_LOG_FILE),
+    ]
 
     created = []
-    for template_name, target_name in template_mapping.items():
+    for template_name, target_name in template_files:
         target_path = ralph_dir / target_name
         template_path = templates_dir / template_name
 
@@ -187,28 +173,31 @@ def init(
         console.print(f"[yellow].speckit-ralph directory already exists at {ralph_dir}[/yellow]")
 
 
+def _show_log_file(filename: str, root: Path | None, lines: int) -> None:
+    """Display a log file with optional line limit."""
+    ralph_dir = get_ralph_dir(root)
+    file_path = ralph_dir / filename
+
+    if not file_path.exists():
+        console.print(f"[red]Error: .speckit-ralph/{filename} not found. Run 'speckit-ralph init' first.[/red]")
+        raise typer.Exit(1)
+
+    content = file_path.read_text(encoding="utf-8")
+    content_lines = content.splitlines()
+
+    if len(content_lines) > lines:
+        content = "\n".join(content_lines[-lines:])
+
+    console.print(Markdown(content))
+
+
 @app.command()
 def show_activity(
     root: Path | None = typer.Option(None, "--root", "-r", help="Project root directory"),
     lines: int = typer.Option(50, "--lines", "-n", help="Number of lines to show"),
 ) -> None:
     """Display the activity log."""
-    root = resolve_root(root)
-    ralph_dir = get_ralph_dir(root)
-    activity_path = ralph_dir / ACTIVITY_LOG_FILE
-
-    if not activity_path.exists():
-        console.print("[red]Error: .speckit-ralph/activity.log not found. Run 'speckit-ralph init' first.[/red]")
-        raise typer.Exit(1)
-
-    content = activity_path.read_text(encoding="utf-8")
-    content_lines = content.splitlines()
-
-    if len(content_lines) > lines:
-        content_lines = content_lines[-lines:]
-        content = "\n".join(content_lines)
-
-    console.print(Markdown(content))
+    _show_log_file(ACTIVITY_LOG_FILE, root, lines)
 
 
 @app.command()
@@ -217,22 +206,7 @@ def show_errors(
     lines: int = typer.Option(50, "--lines", "-n", help="Number of lines to show"),
 ) -> None:
     """Display the errors log."""
-    root = resolve_root(root)
-    ralph_dir = get_ralph_dir(root)
-    errors_path = ralph_dir / ERRORS_LOG_FILE
-
-    if not errors_path.exists():
-        console.print("[red]Error: .speckit-ralph/errors.log not found. Run 'speckit-ralph init' first.[/red]")
-        raise typer.Exit(1)
-
-    content = errors_path.read_text(encoding="utf-8")
-    content_lines = content.splitlines()
-
-    if len(content_lines) > lines:
-        content_lines = content_lines[-lines:]
-        content = "\n".join(content_lines)
-
-    console.print(Markdown(content))
+    _show_log_file(ERRORS_LOG_FILE, root, lines)
 
 
 @app.command()
@@ -240,16 +214,13 @@ def show_guardrails(
     root: Path | None = typer.Option(None, "--root", "-r", help="Project root directory"),
 ) -> None:
     """Display the guardrails (signs)."""
-    root = resolve_root(root)
-    ralph_dir = get_ralph_dir(root)
-    guardrails_path = ralph_dir / GUARDRAILS_FILE
+    guardrails_path = get_ralph_dir(root) / GUARDRAILS_FILE
 
     if not guardrails_path.exists():
         console.print("[red]Error: .speckit-ralph/guardrails.md not found. Run 'speckit-ralph init' first.[/red]")
         raise typer.Exit(1)
 
-    content = guardrails_path.read_text(encoding="utf-8")
-    console.print(Markdown(content))
+    console.print(Markdown(guardrails_path.read_text(encoding="utf-8")))
 
 
 if __name__ == "__main__":

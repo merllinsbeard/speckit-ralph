@@ -2,52 +2,43 @@
 #
 # Agent command templates for Ralph Wiggum Loop
 #
-# Each agent has two command templates:
-#   - Regular: reads prompt from file/stdin
-#   - Interactive: prompt passed as argument
+# Each agent defines: command templates, output filename, and sleep duration
 #
 
+# =============================================================================
+# Agent Definitions
+# =============================================================================
+
 # Claude Code CLI
-AGENT_CLAUDE_CMD="claude --print --dangerously-skip-permissions --output-format text \"\$(cat {prompt})\""
-AGENT_CLAUDE_INTERACTIVE_CMD="claude --dangerously-skip-permissions {prompt}"
-AGENT_CLAUDE_OUTPUT_FILE="output.txt"
-AGENT_CLAUDE_SLEEP_DEFAULT=2
+declare -A AGENT_CLAUDE=(
+  [cmd]='claude --print --dangerously-skip-permissions --output-format text "$(cat {prompt})"'
+  [interactive_cmd]='claude --dangerously-skip-permissions {prompt}'
+  [output_file]='output.txt'
+  [sleep_default]=2
+)
 
 # Codex CLI
-AGENT_CODEX_CMD="codex exec -C \"{repo_root}\" -s \"{sandbox}\" -c \"approval_policy=\\\"{approval_policy}\\\"\" --output-last-message \"{output}\" < \"{prompt}\""
-AGENT_CODEX_INTERACTIVE_CMD="codex exec -C \"{repo_root}\" -s \"{sandbox}\" -c \"approval_policy=\\\"{approval_policy}\\\"\" {prompt}"
-AGENT_CODEX_OUTPUT_FILE="last-message.txt"
-AGENT_CODEX_SANDBOX="${CODEX_SANDBOX:-workspace-write}"
-AGENT_CODEX_APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-never}"
-AGENT_CODEX_SLEEP_DEFAULT=1
+declare -A AGENT_CODEX=(
+  [cmd]='codex exec -C "{repo_root}" -s "{sandbox}" -c "approval_policy=\"{approval_policy}\"" --output-last-message "{output}" < "{prompt}"'
+  [interactive_cmd]='codex exec -C "{repo_root}" -s "{sandbox}" -c "approval_policy=\"{approval_policy}\"" {prompt}'
+  [output_file]='last-message.txt'
+  [sleep_default]=1
+)
 
-# Default agent (no fallback - must be specified via CLI or RALPH_AGENT env var)
+# List of valid agents
+VALID_AGENTS="claude codex"
 DEFAULT_AGENT="${RALPH_AGENT:-}"
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
 
-# Get command template for agent
-get_agent_cmd() {
+# Get agent array reference by name
+_get_agent_ref() {
   local agent="$1"
-  local mode="${2:-regular}"  # regular or interactive
-
   case "$agent" in
-    claude)
-      if [[ "$mode" == "interactive" ]]; then
-        echo "$AGENT_CLAUDE_INTERACTIVE_CMD"
-      else
-        echo "$AGENT_CLAUDE_CMD"
-      fi
-      ;;
-    codex)
-      if [[ "$mode" == "interactive" ]]; then
-        echo "$AGENT_CODEX_INTERACTIVE_CMD"
-      else
-        echo "$AGENT_CODEX_CMD"
-      fi
-      ;;
+    claude) echo "AGENT_CLAUDE" ;;
+    codex) echo "AGENT_CODEX" ;;
     *)
       echo "ERROR: Unknown agent: $agent" >&2
       return 1
@@ -55,63 +46,54 @@ get_agent_cmd() {
   esac
 }
 
-# Get output filename for agent
-get_agent_output_file() {
+# Get agent property
+_get_agent_property() {
   local agent="$1"
-
-  case "$agent" in
-    claude) echo "$AGENT_CLAUDE_OUTPUT_FILE" ;;
-    codex) echo "$AGENT_CODEX_OUTPUT_FILE" ;;
-    *)
-      echo "ERROR: Unknown agent: $agent" >&2
-      return 1
-      ;;
-  esac
-}
-
-# Get default sleep duration for agent
-get_agent_sleep_default() {
-  local agent="$1"
-
-  case "$agent" in
-    claude) echo "$AGENT_CLAUDE_SLEEP_DEFAULT" ;;
-    codex) echo "$AGENT_CODEX_SLEEP_DEFAULT" ;;
-    *)
-      echo "ERROR: Unknown agent: $agent" >&2
-      return 1
-      ;;
-  esac
+  local property="$2"
+  local ref
+  ref="$(_get_agent_ref "$agent")" || return 1
+  local key="${ref}[$property]"
+  echo "${!key}"
 }
 
 # Validate agent name
 validate_agent() {
   local agent="$1"
-
-  case "$agent" in
-    claude|codex)
-      return 0
-      ;;
-    *)
-      echo "ERROR: Invalid agent '$agent'. Valid agents: claude, codex" >&2
-      return 1
-      ;;
-  esac
+  for valid in $VALID_AGENTS; do
+    [[ "$agent" == "$valid" ]] && return 0
+  done
+  echo "ERROR: Invalid agent '$agent'. Valid agents: $VALID_AGENTS" >&2
+  return 1
 }
 
-# Expand command template with values
-expand_agent_cmd() {
-  local cmd="$1"
-  shift
+# Get command template for agent
+get_agent_cmd() {
+  local agent="$1"
+  local mode="${2:-regular}"
+  local property="cmd"
+  [[ "$mode" == "interactive" ]] && property="interactive_cmd"
+  _get_agent_property "$agent" "$property"
+}
 
-  # Replace placeholders with actual values
-  # Accepts key=value pairs
-  local result="$cmd"
+# Get output filename for agent
+get_agent_output_file() {
+  _get_agent_property "$1" "output_file"
+}
+
+# Get default sleep duration for agent
+get_agent_sleep_default() {
+  _get_agent_property "$1" "sleep_default"
+}
+
+# Expand command template with values (accepts key=value pairs)
+expand_agent_cmd() {
+  local result="$1"
+  shift
   while [[ $# -gt 0 ]]; do
     local key="${1%%=*}"
     local value="${1#*=}"
     result="${result//\{$key\}/$value}"
     shift
   done
-
   echo "$result"
 }

@@ -35,40 +35,61 @@ While SPEC-KIT's `/speckit.implement` runs tasks once, **speckit-ralph automates
 
 ## ⚡ Quick Start
 
-### 1. Install SPEC-KIT
+### Prerequisites
 
-```bash
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
-```
+1. **SPEC-KIT installed and initialized** in your project
+2. **Spec workflow complete**: `spec.md`, `plan.md`, `tasks.md` exist in `specs/<branch>/`
+3. **Feature branch** matching your spec directory (e.g., `feature/auth` → `specs/feature/auth/`)
 
-### 2. Initialize your project
-
-```bash
-specify init my-project --ai claude
-cd my-project
-```
-
-### 3. Complete SPEC-KIT workflow
-
-```bash
-/speckit.specify    # Create specifications
-/speckit.plan       # Create implementation plan
-/speckit.tasks      # Generate task breakdown
-```
-
-### 4. Install speckit-ralph
+### Installation
 
 ```bash
 uv tool install speckit-ralph --from git+https://github.com/merllinsbeard/speckit-ralph.git
 ```
 
-### 5. Run the loop
+### Usage
 
 ```bash
-# Single iteration (HITL mode)
-speckit-ralph once --agent claude
+# 1. Checkout your feature branch
+git checkout feature/my-feature
 
-# Multiple iterations (AFK mode)
+# 2. Initialize Ralph (creates .speckit-ralph/ directory)
+speckit-ralph init
+
+# 3. Run the loop
+speckit-ralph once --agent claude      # Single iteration (review each step)
+speckit-ralph loop 10 --agent claude   # Multiple iterations (AFK mode)
+```
+
+### Optional: Inspect the prompt
+
+```bash
+# See what Ralph will send to the AI agent
+speckit-ralph build-prompt
+
+# Save to file for review
+speckit-ralph build-prompt --output prompt.md
+```
+
+### New to SPEC-KIT?
+
+If you haven't set up SPEC-KIT yet:
+
+```bash
+# Install SPEC-KIT
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+
+# Initialize in your project
+specify init . --here --ai claude
+
+# Create spec workflow (in Claude Code)
+/speckit.specify    # Create specifications
+/speckit.plan       # Create implementation plan
+/speckit.tasks      # Generate task breakdown
+
+# Then install and run Ralph
+uv tool install speckit-ralph --from git+https://github.com/merllinsbeard/speckit-ralph.git
+speckit-ralph init
 speckit-ralph loop 10 --agent claude
 ```
 
@@ -123,14 +144,17 @@ speckit-ralph loop 10 --agent claude
 
 ### Options
 
-| Option                   | Commands                       | Description                                      |
-| ------------------------ | ------------------------------ | ------------------------------------------------ |
-| `--agent`, `-a`          | `once`, `loop`                 | **Required.** Agent: `claude` or `codex`         |
-| `--keep-artifacts`, `-k` | `once`, `loop`                 | Keep temp files for debugging                    |
-| `--promise`, `-p`        | `once`, `loop`                 | Completion promise string                        |
-| `--detach`, `-d`         | `loop`                         | Run in background                                |
-| `--sleep`, `-s`          | `loop`                         | Seconds between iterations                       |
-| `--spec`, `-S`           | `once`, `loop`, `build-prompt` | Spec directory path (overrides branch detection) |
+| Option                   | Commands                                                  | Description                                      |
+| ------------------------ | --------------------------------------------------------- | ------------------------------------------------ |
+| `--agent`, `-a`          | `once`, `loop`                                            | **Required.** Agent: `claude` or `codex`         |
+| `--keep-artifacts`, `-k` | `once`, `loop`                                            | Keep temp files for debugging                    |
+| `--promise`, `-p`        | `once`, `loop`                                            | Completion promise string                        |
+| `--detach`, `-d`         | `loop`                                                    | Run in background                                |
+| `--sleep`, `-s`          | `loop`                                                    | Seconds between iterations                       |
+| `--spec`, `-S`           | `once`, `loop`, `build-prompt`                            | Spec directory path (overrides branch detection) |
+| `--root`, `-r`           | `init`, `show-activity`, `show-errors`, `show-guardrails` | Project root directory                           |
+| `--lines`, `-n`          | `show-activity`, `show-errors`                            | Number of lines to show (default: 50)            |
+| `--output`, `-o`         | `build-prompt`                                            | Output file path                                 |
 
 ### Examples
 

@@ -16,16 +16,9 @@ ARTIFACT_DIR="${RALPH_ARTIFACT_DIR:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --agent|-a)
-      AGENT="${2:-}"
-      if [[ -z "$AGENT" ]]; then
-        echo "ERROR: --agent requires a value" >&2
-        exit 1
-      fi
-      shift 2
-      ;;
-    *)
-      shift
-      ;;
+      [[ -n "${2:-}" ]] || { echo "ERROR: --agent requires a value" >&2; exit 1; }
+      AGENT="$2"; shift 2 ;;
+    *) shift ;;
   esac
 done
 
@@ -63,25 +56,16 @@ AGENT_CMD=$(expand_agent_cmd "$AGENT_CMD" \
 
 # Execute agent command
 set +e
-case "$AGENT" in
-  claude)
-    # Claude outputs to stdout, redirect to output file
-    eval "$AGENT_CMD" > "$OUTPUT_FILE" 2>&1
-    CMD_STATUS=$?
-    # Show output for debugging
-    cat "$OUTPUT_FILE"
-    ;;
-  codex)
-    # Codex outputs to stdout directly, last message saved to output file
-    eval "$AGENT_CMD"
-    CMD_STATUS=$?
-    ;;
-  *)
-    echo "ERROR: Unsupported agent: $AGENT" >&2
-    cleanup
-    exit 1
-    ;;
-esac
+if [[ "$AGENT" == "claude" ]]; then
+  # Claude outputs to stdout, redirect to output file then display
+  eval "$AGENT_CMD" > "$OUTPUT_FILE" 2>&1
+  CMD_STATUS=$?
+  cat "$OUTPUT_FILE"
+else
+  # Codex outputs to stdout directly, last message saved to output file
+  eval "$AGENT_CMD"
+  CMD_STATUS=$?
+fi
 set -e
 
 # Check for completion promise

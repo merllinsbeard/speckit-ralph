@@ -18,6 +18,11 @@ Options:
 EOF
 }
 
+# Require non-empty argument value
+require_arg() {
+  [[ -n "${2:-}" ]] || { echo "ERROR: $1 requires a value" >&2; exit 1; }
+}
+
 # --- Argument Parsing ---
 
 AGENT=""
@@ -28,46 +33,17 @@ ITERATIONS=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --agent|-a)
-      AGENT="${2:-}"
-      if [[ -z "$AGENT" ]]; then
-        echo "ERROR: --agent requires a value" >&2
-        exit 1
-      fi
-      shift 2
-      ;;
-    --detach|-d)
-      DETACH=1
-      shift
-      ;;
-    --log)
-      LOG_FILE="${2:-}"
-      if [[ -z "$LOG_FILE" ]]; then
-        echo "ERROR: --log requires a path" >&2
-        exit 1
-      fi
-      shift 2
-      ;;
-    --pid)
-      PID_FILE="${2:-}"
-      if [[ -z "$PID_FILE" ]]; then
-        echo "ERROR: --pid requires a path" >&2
-        exit 1
-      fi
-      shift 2
-      ;;
-    --help|-h)
-      usage
-      exit 0
-      ;;
+    --agent|-a)   require_arg "$1" "${2:-}"; AGENT="$2"; shift 2 ;;
+    --detach|-d)  DETACH=1; shift ;;
+    --log)        require_arg "$1" "${2:-}"; LOG_FILE="$2"; shift 2 ;;
+    --pid)        require_arg "$1" "${2:-}"; PID_FILE="$2"; shift 2 ;;
+    --help|-h)    usage; exit 0 ;;
     *)
       if [[ -z "$ITERATIONS" ]]; then
-        ITERATIONS="$1"
-        shift
+        ITERATIONS="$1"; shift
       else
         echo "ERROR: unexpected argument: $1" >&2
-        usage
-        exit 1
+        usage; exit 1
       fi
       ;;
   esac

@@ -210,23 +210,19 @@ ERRORS
   fi
 }
 
-# Log an activity event with timestamp
-# Usage: log_activity "ITERATION 1 start"
-log_activity() {
-  local message="$1"
-  local ts
-  ts=$(date '+%Y-%m-%d %H:%M:%S')
-  echo "[$ts] $message" >> "$RALPH_ACTIVITY_LOG"
+# Log a timestamped message to a file
+# Usage: _log_to "file" "message"
+_log_to() {
+  local file="$1"
+  local message="$2"
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $message" >> "$file"
 }
 
-# Log an error event with timestamp
-# Usage: log_error "ITERATION 1 failed with status 1"
-log_error() {
-  local message="$1"
-  local ts
-  ts=$(date '+%Y-%m-%d %H:%M:%S')
-  echo "[$ts] $message" >> "$RALPH_ERRORS_LOG"
-}
+# Log an activity event
+log_activity() { _log_to "$RALPH_ACTIVITY_LOG" "$1"; }
+
+# Log an error event
+log_error() { _log_to "$RALPH_ERRORS_LOG" "$1"; }
 
 # Append a line to the Run Summary section
 # Usage: append_run_summary "2026-01-16 22:00:00 | run=abc | iter=1 | duration=120s"

@@ -29,34 +29,18 @@ die() {
   exit 1
 }
 
-# Return file path if exists, otherwise "N/A"
-resolve_file_path() {
-  local path="$1"
-  if [[ -f "$path" ]]; then
-    echo "$path"
-  else
-    echo "N/A"
-  fi
-}
-
-# Return directory path if exists and non-empty, otherwise "N/A"
-resolve_dir_path() {
-  local path="$1"
-  if [[ -d "$path" ]] && [[ -n "$(ls -A "$path" 2>/dev/null)" ]]; then
-    echo "$path"
-  else
-    echo "N/A"
-  fi
-}
-
-# Return value if non-empty, otherwise "N/A"
-resolve_value() {
+# Return value or "N/A" based on condition
+# Usage: resolve_or_na "value" "condition_type"
+#   condition_type: "file", "dir", or "value" (default)
+resolve_or_na() {
   local value="$1"
-  if [[ -n "$value" ]]; then
-    echo "$value"
-  else
-    echo "N/A"
-  fi
+  local type="${2:-value}"
+
+  case "$type" in
+    file)  [[ -f "$value" ]] && echo "$value" || echo "N/A" ;;
+    dir)   [[ -d "$value" && -n "$(ls -A "$value" 2>/dev/null)" ]] && echo "$value" || echo "N/A" ;;
+    *)     [[ -n "$value" ]] && echo "$value" || echo "N/A" ;;
+  esac
 }
 
 # =============================================================================
@@ -83,12 +67,12 @@ OUTPUT_FILE="$(parse_output_file "${1:-}" "${2:-}")"
 PROMISE="${RALPH_PROMISE:-COMPLETE}"
 
 # Resolve optional paths (set to "N/A" if missing)
-RESEARCH_PATH="$(resolve_file_path "$RESEARCH")"
-DATA_MODEL_PATH="$(resolve_file_path "$DATA_MODEL")"
-QUICKSTART_PATH="$(resolve_file_path "$QUICKSTART")"
-CONTRACTS_PATH="$(resolve_dir_path "$CONTRACTS_DIR")"
-REPO_SLUG_VALUE="$(resolve_value "$REPO_SLUG")"
-GUARDRAILS_PATH="$(resolve_file_path "$RALPH_GUARDRAILS")"
+RESEARCH_PATH="$(resolve_or_na "$RESEARCH" file)"
+DATA_MODEL_PATH="$(resolve_or_na "$DATA_MODEL" file)"
+QUICKSTART_PATH="$(resolve_or_na "$QUICKSTART" file)"
+CONTRACTS_PATH="$(resolve_or_na "$CONTRACTS_DIR" dir)"
+REPO_SLUG_VALUE="$(resolve_or_na "$REPO_SLUG")"
+GUARDRAILS_PATH="$(resolve_or_na "$RALPH_GUARDRAILS" file)"
 
 # =============================================================================
 # Template Rendering
