@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-ralph = "speckit_ralph.cli:app"
+speckit-ralph = "speckit_ralph.cli:app"
 
 [build-system]
 requires = ["hatchling"]
