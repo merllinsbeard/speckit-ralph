@@ -1,7 +1,6 @@
 """Ralph Wiggum Loop CLI."""
 
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -28,15 +27,49 @@ ACTIVITY_LOG_FILE = "activity.log"
 ERRORS_LOG_FILE = "errors.log"
 RUNS_DIR_NAME = "runs"
 
+# Default file content (single source of truth - matches ralph-env.sh heredocs)
+DEFAULT_GUARDRAILS = """\
+# Guardrails (Signs)
+
+> Lessons learned from failures. Read before acting.
+
+## Core Signs
+
+### Sign: Read Before Writing
+- **Trigger**: Before modifying any file
+- **Instruction**: Read the file first
+- **Added after**: Core principle
+
+### Sign: Test Before Commit
+- **Trigger**: Before committing changes
+- **Instruction**: Run required tests and verify outputs
+- **Added after**: Core principle
+
+---
+
+## Learned Signs
+
+<!-- Add project-specific signs below -->
+"""
+
+DEFAULT_ACTIVITY = """\
+# Activity Log
+
+## Run Summary
+
+## Events
+"""
+
+DEFAULT_ERRORS = """\
+# Error Log
+
+> Failures and repeated issues. Use this to add guardrails.
+"""
+
 
 def get_ralph_dir(root: Path | None = None) -> Path:
     """Get the .speckit-ralph directory path, defaulting to current directory."""
     return (root or Path.cwd()) / RALPH_DIR_NAME
-
-
-def get_templates_dir() -> Path:
-    """Get the path to bundled templates directory."""
-    return Path(__file__).parent / "templates"
 
 
 def get_scripts_dir() -> Path:
@@ -145,25 +178,22 @@ def init(
 ) -> None:
     """Initialize .speckit-ralph directory with default files."""
     ralph_dir = get_ralph_dir(root)
-    templates_dir = get_templates_dir()
 
     ralph_dir.mkdir(parents=True, exist_ok=True)
     (ralph_dir / RUNS_DIR_NAME).mkdir(parents=True, exist_ok=True)
 
-    template_files = [
-        ("guardrails.md", GUARDRAILS_FILE),
-        ("activity.md", ACTIVITY_LOG_FILE),
-        ("errors.md", ERRORS_LOG_FILE),
+    default_files = [
+        (GUARDRAILS_FILE, DEFAULT_GUARDRAILS),
+        (ACTIVITY_LOG_FILE, DEFAULT_ACTIVITY),
+        (ERRORS_LOG_FILE, DEFAULT_ERRORS),
     ]
 
     created = []
-    for template_name, target_name in template_files:
-        target_path = ralph_dir / target_name
-        template_path = templates_dir / template_name
-
-        if not target_path.exists() and template_path.exists():
-            shutil.copy(template_path, target_path)
-            created.append(target_name)
+    for filename, content in default_files:
+        target_path = ralph_dir / filename
+        if not target_path.exists():
+            target_path.write_text(content)
+            created.append(filename)
 
     if created:
         console.print(f"[green]Initialized .speckit-ralph directory at {ralph_dir}[/green]")
