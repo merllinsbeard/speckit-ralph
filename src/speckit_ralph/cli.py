@@ -4,9 +4,8 @@ import os
 import shutil
 import subprocess
 import sys
-from datetime import datetime
+import tempfile
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -31,11 +30,14 @@ ERRORS_LOG_FILE = "errors.log"
 RUNS_DIR_NAME = "runs"
 
 
+def resolve_root(root: Path | None) -> Path:
+    """Resolve project root directory."""
+    return root if root is not None else Path.cwd()
+
+
 def get_ralph_dir(root: Path | None = None) -> Path:
     """Get the .ralph directory path."""
-    if root is None:
-        root = Path.cwd()
-    return root / RALPH_DIR_NAME
+    return resolve_root(root) / RALPH_DIR_NAME
 
 
 def get_templates_dir() -> Path:
@@ -64,8 +66,15 @@ def run_script(script_name: str, args: list[str] | None = None, env: dict | None
     if env:
         run_env.update(env)
 
-    result = subprocess.run(cmd, env=run_env)
-    return result.returncode
+    try:
+        result = subprocess.run(cmd, env=run_env)
+        return result.returncode
+    except FileNotFoundError:
+        console.print("[red]Error: bash not found[/red]")
+        return 1
+    except PermissionError:
+        console.print(f"[red]Error: Permission denied: {script_path}[/red]")
+        return 1
 
 
 @app.command()
@@ -77,7 +86,7 @@ def once(
     """Run a single Ralph iteration."""
     env = {"RALPH_PROMISE": promise, "RALPH_AGENT": agent}
     if keep_artifacts:
-        env["RALPH_ARTIFACT_DIR"] = f"/tmp/ralph-{agent}-debug"
+        env["RALPH_ARTIFACT_DIR"] = str(Path(tempfile.gettempdir()) / f"ralph-{agent}-debug")
 
     sys.exit(run_script("ralph-once.sh", env=env))
 
@@ -100,7 +109,7 @@ def loop(
 
     env = {"RALPH_PROMISE": promise, "RALPH_AGENT": agent}
     if keep_artifacts:
-        env["RALPH_ARTIFACT_DIR"] = f"/tmp/ralph-{agent}-loop"
+        env["RALPH_ARTIFACT_DIR"] = str(Path(tempfile.gettempdir()) / f"ralph-{agent}-loop")
     if sleep is not None:
         env["RALPH_SLEEP_SECONDS"] = str(sleep)
 
@@ -109,8 +118,8 @@ def loop(
 
 @app.command()
 def build_prompt(
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Output file path"),
-):
+    output: Path | None = typer.Option(None, "--output", "-o", help="Output file path"),
+) -> None:
     """Generate Ralph prompt from template."""
     args = []
     if output:
@@ -120,7 +129,7 @@ def build_prompt(
 
 
 @app.command()
-def scripts_path():
+def scripts_path() -> None:
     """Print path to bundled scripts directory."""
     console.print(get_scripts_dir())
 
@@ -132,12 +141,10 @@ def scripts_path():
 
 @app.command()
 def init(
-    root: Optional[Path] = typer.Option(None, "--root", "-r", help="Project root directory"),
-):
+    root: Path | None = typer.Option(None, "--root", "-r", help="Project root directory"),
+) -> None:
     """Initialize .ralph directory with default files."""
-    if root is None:
-        root = Path.cwd()
-
+    root = resolve_root(root)
     ralph_dir = get_ralph_dir(root)
     runs_dir = ralph_dir / RUNS_DIR_NAME
     templates_dir = get_templates_dir()
@@ -172,16 +179,14 @@ def init(
 
 @app.command()
 def add_sign(
-    root: Optional[Path] = typer.Option(None, "--root", "-r", help="Project root directory"),
-    name: Optional[str] = typer.Option(None, "--name", "-n", help="Sign name"),
-    trigger: Optional[str] = typer.Option(None, "--trigger", "-t", help="When this sign applies"),
-    instruction: Optional[str] = typer.Option(None, "--instruction", "-i", help="What to do"),
-    reason: Optional[str] = typer.Option(None, "--reason", help="Why this sign was added"),
-):
+    root: Path | None = typer.Option(None, "--root", "-r", help="Project root directory"),
+    name: str | None = typer.Option(None, "--name", "-n", help="Sign name"),
+    trigger: str | None = typer.Option(None, "--trigger", "-t", help="When this sign applies"),
+    instruction: str | None = typer.Option(None, "--instruction", "-i", help="What to do"),
+    reason: str | None = typer.Option(None, "--reason", help="Why this sign was added"),
+) -> None:
     """Add a new guardrail (sign) interactively or via options."""
-    if root is None:
-        root = Path.cwd()
-
+    root = resolve_root(root)
     ralph_dir = get_ralph_dir(root)
     guardrails_path = ralph_dir / GUARDRAILS_FILE
 
@@ -216,13 +221,11 @@ def add_sign(
 
 @app.command()
 def show_activity(
-    root: Optional[Path] = typer.Option(None, "--root", "-r", help="Project root directory"),
+    root: Path | None = typer.Option(None, "--root", "-r", help="Project root directory"),
     lines: int = typer.Option(50, "--lines", "-n", help="Number of lines to show"),
-):
+) -> None:
     """Display the activity log."""
-    if root is None:
-        root = Path.cwd()
-
+    root = resolve_root(root)
     ralph_dir = get_ralph_dir(root)
     activity_path = ralph_dir / ACTIVITY_LOG_FILE
 
@@ -242,13 +245,11 @@ def show_activity(
 
 @app.command()
 def show_errors(
-    root: Optional[Path] = typer.Option(None, "--root", "-r", help="Project root directory"),
+    root: Path | None = typer.Option(None, "--root", "-r", help="Project root directory"),
     lines: int = typer.Option(50, "--lines", "-n", help="Number of lines to show"),
-):
+) -> None:
     """Display the errors log."""
-    if root is None:
-        root = Path.cwd()
-
+    root = resolve_root(root)
     ralph_dir = get_ralph_dir(root)
     errors_path = ralph_dir / ERRORS_LOG_FILE
 
@@ -268,12 +269,10 @@ def show_errors(
 
 @app.command()
 def show_guardrails(
-    root: Optional[Path] = typer.Option(None, "--root", "-r", help="Project root directory"),
-):
+    root: Path | None = typer.Option(None, "--root", "-r", help="Project root directory"),
+) -> None:
     """Display the guardrails (signs)."""
-    if root is None:
-        root = Path.cwd()
-
+    root = resolve_root(root)
     ralph_dir = get_ralph_dir(root)
     guardrails_path = ralph_dir / GUARDRAILS_FILE
 

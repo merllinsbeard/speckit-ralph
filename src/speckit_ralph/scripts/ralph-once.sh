@@ -37,7 +37,7 @@ if [[ -n "$ARTIFACT_DIR" ]]; then
   mkdir -p "$ARTIFACT_DIR"
   PROMPT_FILE="$ARTIFACT_DIR/prompt.md"
   OUTPUT_FILE="$ARTIFACT_DIR/$(get_agent_output_file "$AGENT")"
-  "$SCRIPT_DIR/build-prompt.sh" --output "$PROMPT_FILE" >/dev/null
+  "$SCRIPT_DIR/build-prompt.sh" --output "$PROMPT_FILE"
 else
   PROMPT_FILE="$($SCRIPT_DIR/build-prompt.sh)"
   OUTPUT_FILE="$(mktemp -t "ralph-$(get_agent_output_file "$AGENT").XXXXXX")"

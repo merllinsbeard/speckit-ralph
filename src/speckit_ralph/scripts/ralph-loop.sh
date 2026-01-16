@@ -78,6 +78,11 @@ if [[ -z "$ITERATIONS" ]]; then
   exit 1
 fi
 
+if ! [[ "$ITERATIONS" =~ ^[0-9]+$ ]] || [[ $ITERATIONS -lt 1 ]]; then
+  echo "ERROR: ITERATIONS must be a positive integer" >&2
+  exit 1
+fi
+
 # --- Detach Mode ---
 
 detach_loop() {

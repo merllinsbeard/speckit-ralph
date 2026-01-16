@@ -59,7 +59,7 @@ cd my-project
 ### 4. Install speckit-ralph
 
 ```bash
-uv tool install speckit-ralph
+uv tool install speckit-ralph --from git+https://github.com/merllinsbeard/speckit-ralph.git
 ```
 
 ### 5. Run the loop
@@ -209,8 +209,6 @@ Run summaries are stored in `.ralph/runs/` with:
 | `RALPH_SLEEP_SECONDS`     | `2` (claude), `1` (codex) | Seconds between iterations     |
 | `RALPH_ARTIFACT_DIR`      | (temp)                    | Directory for artifacts        |
 | `RALPH_SKIP_BRANCH_CHECK` | `0`                       | Skip feature branch validation |
-| `CLAUDE_BIN`              | `claude`                  | Path to Claude CLI             |
-| `CODEX_BIN`               | `codex`                   | Path to Codex CLI              |
 | `CODEX_SANDBOX`           | `workspace-write`         | Codex sandbox mode             |
 | `CODEX_APPROVAL_POLICY`   | `never`                   | Codex approval policy          |
 

@@ -8,3 +8,19 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Python version
+.python-version
+
+# OS files
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Editor backup files
+*.swp
+*.swo
+*.bak
+*~
