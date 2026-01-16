@@ -25,8 +25,24 @@ declare -A AGENT_CODEX=(
   [sleep_default]=1
 )
 
+# Droid CLI
+declare -A AGENT_DROID=(
+  [cmd]='droid exec --skip-permissions-unsafe -f {prompt}'
+  [interactive_cmd]='droid --skip-permissions-unsafe {prompt}'
+  [output_file]='output.txt'
+  [sleep_default]=2
+)
+
+# OpenCode CLI
+declare -A AGENT_OPENCODE=(
+  [cmd]='opencode run "$(cat {prompt})"'
+  [interactive_cmd]='opencode --prompt {prompt}'
+  [output_file]='output.txt'
+  [sleep_default]=2
+)
+
 # List of valid agents
-VALID_AGENTS="claude codex"
+VALID_AGENTS="claude codex droid opencode"
 DEFAULT_AGENT="${RALPH_AGENT:-}"
 
 # =============================================================================
@@ -39,6 +55,8 @@ _get_agent_ref() {
   case "$agent" in
     claude) echo "AGENT_CLAUDE" ;;
     codex) echo "AGENT_CODEX" ;;
+    droid) echo "AGENT_DROID" ;;
+    opencode) echo "AGENT_OPENCODE" ;;
     *)
       echo "ERROR: Unknown agent: $agent" >&2
       return 1

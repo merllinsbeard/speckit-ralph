@@ -106,7 +106,7 @@ def run_script(script_name: str, args: list[str] | None = None, env: dict | None
 
 @app.command()
 def once(
-    agent: str = typer.Option(..., "--agent", "-a", help="Agent to use: claude or codex"),
+    agent: str = typer.Option(..., "--agent", "-a", help="Agent to use: claude, codex, droid, or opencode"),
     keep_artifacts: bool = typer.Option(False, "--keep-artifacts", "-k", help="Keep temp files for debugging"),
     promise: str = typer.Option("COMPLETE", "--promise", "-p", help="Completion promise string"),
     spec: str | None = typer.Option(None, "--spec", "-S", help="Spec directory path (overrides branch detection)"),
@@ -124,7 +124,7 @@ def once(
 @app.command()
 def loop(
     iterations: int = typer.Argument(..., help="Number of iterations to run"),
-    agent: str = typer.Option(..., "--agent", "-a", help="Agent to use: claude or codex"),
+    agent: str = typer.Option(..., "--agent", "-a", help="Agent to use: claude, codex, droid, or opencode"),
     detach: bool = typer.Option(False, "--detach", "-d", help="Run in background"),
     keep_artifacts: bool = typer.Option(False, "--keep-artifacts", "-k", help="Keep temp files"),
     promise: str = typer.Option("COMPLETE", "--promise", "-p", help="Completion promise string"),
