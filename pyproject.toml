@@ -1,7 +1,7 @@
 [project]
 name = "speckit-ralph"
 version = "0.1.0"
-description = "Ralph Wiggum Loop - Iterative AI coding CLI for Claude Code and Codex"
+description = "Ralph Wiggum Loop - Iterative execution engine for SPEC-KIT workflows with Claude Code and Codex"
 readme = "README.md"
 authors = [
     { name = "merllinsbeard", email = "144795773+merllinsbeard@users.noreply.github.com" }
