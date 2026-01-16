@@ -24,7 +24,7 @@ Before acting, review these lessons learned from previous iterations:
 
 ## Non-negotiable rules
 
-1. Read and follow {{REPO_ROOT}}/AGENTS.md.
+1. Read and follow {{REPO_ROOT}}/CLAUDE.md and {{REPO_ROOT}}/AGENTS.md (if they exist).
 2. Work on EXACTLY ONE task per iteration.
 3. Keep changes small and focused (one logical change per commit).
 4. Use feedback loops before committing.
@@ -38,7 +38,7 @@ Before acting, review these lessons learned from previous iterations:
 
 ## Execution steps per iteration
 
-1. Read AGENTS.md, spec, plan, tasks, and progress log.
+1. Read CLAUDE.md, AGENTS.md, spec, plan, tasks, and progress log.
 2. Choose ONE task to complete.
 3. Implement the task (TDD if the task is a test task).
 4. Run feedback loops:
