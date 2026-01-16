@@ -88,6 +88,7 @@ DATA_MODEL_PATH="$(resolve_file_path "$DATA_MODEL")"
 QUICKSTART_PATH="$(resolve_file_path "$QUICKSTART")"
 CONTRACTS_PATH="$(resolve_dir_path "$CONTRACTS_DIR")"
 REPO_SLUG_VALUE="$(resolve_value "$REPO_SLUG")"
+GUARDRAILS_PATH="$(resolve_file_path "$RALPH_GUARDRAILS")"
 
 # =============================================================================
 # Template Rendering
@@ -95,6 +96,7 @@ REPO_SLUG_VALUE="$(resolve_value "$REPO_SLUG")"
 
 export TEMPLATE OUTPUT_FILE PROMISE
 export RESEARCH_PATH DATA_MODEL_PATH QUICKSTART_PATH CONTRACTS_PATH REPO_SLUG_VALUE
+export GUARDRAILS_PATH
 
 python - <<'PY'
 import os
@@ -102,6 +104,14 @@ from pathlib import Path
 
 template_path = Path(os.environ["TEMPLATE"])
 output_path = Path(os.environ["OUTPUT_FILE"])
+guardrails_path = os.environ["GUARDRAILS_PATH"]
+
+# Load guardrails content if available
+guardrails_content = ""
+if guardrails_path != "N/A" and Path(guardrails_path).exists():
+    guardrails_content = Path(guardrails_path).read_text(encoding="utf-8").strip()
+else:
+    guardrails_content = "(No guardrails defined yet)"
 
 values = {
     "REPO_ROOT": os.environ["REPO_ROOT"],
@@ -116,6 +126,7 @@ values = {
     "QUICKSTART": os.environ["QUICKSTART_PATH"],
     "REPO_SLUG": os.environ["REPO_SLUG_VALUE"],
     "PROMISE": os.environ["PROMISE"],
+    "GUARDRAILS": guardrails_content,
 }
 
 content = template_path.read_text(encoding="utf-8")

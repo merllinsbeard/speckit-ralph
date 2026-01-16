@@ -1,0 +1,3 @@
+# Error Log
+
+> Failures and repeated issues. Use this to add guardrails.

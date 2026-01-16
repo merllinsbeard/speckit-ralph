@@ -92,7 +92,12 @@ if [[ "$DETACH" -eq 1 ]]; then
   detach_loop
 fi
 
+# Source environment (includes logging functions)
+# shellcheck source=ralph-env.sh
+source "$SCRIPT_DIR/ralph-env.sh"
+
 PROMISE="${RALPH_PROMISE:-COMPLETE}"
+RUN_ID="$(date +%Y%m%d-%H%M%S)-$$"
 
 # Setup artifact directory
 KEEP_ARTIFACTS="${RALPH_ARTIFACT_DIR:+1}"
@@ -118,18 +123,69 @@ check_promise() {
   fi
 }
 
+# Capture git HEAD for tracking
+git_head() {
+  git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo ""
+}
+
 # Main iteration loop
+log_activity "LOOP START run=$RUN_ID iterations=$ITERATIONS cli=claude"
+
 for ((i=1; i<=ITERATIONS; i++)); do
   echo ""
   echo "========================================"
   echo "[ralph] iteration ${i}/${ITERATIONS}"
   echo "========================================"
 
+  ITER_START=$(date +%s)
+  ITER_START_FMT=$(date '+%Y-%m-%d %H:%M:%S')
+  HEAD_BEFORE="$(git_head)"
+
+  log_activity "ITERATION $i start (run=$RUN_ID)"
+
+  set +e
   RALPH_ARTIFACT_DIR="$ARTIFACT_DIR" "$SCRIPT_DIR/ralph-once-claude.sh"
+  CMD_STATUS=$?
+  set -e
+
+  ITER_END=$(date +%s)
+  ITER_DURATION=$((ITER_END - ITER_START))
+  HEAD_AFTER="$(git_head)"
+
+  # Log iteration completion
+  if [[ "$CMD_STATUS" -ne 0 ]]; then
+    log_error "ITERATION $i failed (run=$RUN_ID status=$CMD_STATUS)"
+    STATUS_LABEL="error"
+  else
+    STATUS_LABEL="success"
+  fi
+
+  log_activity "ITERATION $i end (run=$RUN_ID duration=${ITER_DURATION}s status=$STATUS_LABEL)"
+  append_run_summary "$ITER_START_FMT | run=$RUN_ID | iter=$i | cli=claude | duration=${ITER_DURATION}s | status=$STATUS_LABEL"
+
+  # Save run metadata
+  RUN_META="$RALPH_RUNS_DIR/run-$RUN_ID-iter-$i.md"
+  {
+    echo "# Ralph Run: $RUN_ID Iteration $i"
+    echo ""
+    echo "- CLI: claude"
+    echo "- Started: $ITER_START_FMT"
+    echo "- Duration: ${ITER_DURATION}s"
+    echo "- Status: $STATUS_LABEL"
+    echo "- Head (before): ${HEAD_BEFORE:-unknown}"
+    echo "- Head (after): ${HEAD_AFTER:-unknown}"
+    if [[ "$HEAD_BEFORE" != "$HEAD_AFTER" && -n "$HEAD_BEFORE" && -n "$HEAD_AFTER" ]]; then
+      echo ""
+      echo "## Commits"
+      git -C "$REPO_ROOT" log --oneline "$HEAD_BEFORE..$HEAD_AFTER" | sed 's/^/- /'
+    fi
+  } > "$RUN_META"
+
   check_promise
 
   sleep "${RALPH_SLEEP_SECONDS:-2}"
 done
 
+log_activity "LOOP END run=$RUN_ID (max iterations reached)"
 echo "[ralph] max iterations reached (${ITERATIONS})"
 cleanup_artifacts

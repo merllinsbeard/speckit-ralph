@@ -60,6 +60,59 @@ ralph build-prompt --output /tmp/prompt.md
 ralph scripts-path
 ```
 
+### Guardrails & Activity Log
+
+```bash
+# Initialize .ralph directory with default files
+ralph init
+
+# Add a new guardrail (sign) interactively
+ralph add-sign
+
+# Add a sign via command line
+ralph add-sign --name "Check Tests" --trigger "Before commit" --instruction "Run pytest" --reason "Iteration 3"
+
+# Show guardrails
+ralph show-guardrails
+
+# Show activity log
+ralph show-activity
+
+# Show errors log
+ralph show-errors
+```
+
+## Guardrails (Signs)
+
+Guardrails are "signs" - lessons learned from failures that help prevent recurring mistakes. They are stored in `.ralph/guardrails.md` and injected into each iteration's prompt.
+
+**Sign format:**
+
+```markdown
+### Sign: [Name]
+
+- **Trigger**: When this applies
+- **Instruction**: What to do instead
+- **Added after**: Why it was added
+```
+
+**Types of signs:**
+
+- **Preventive**: Stop problems before they happen
+- **Corrective**: Fix recurring mistakes
+- **Process**: Enforce good practices
+- **Architecture**: Guide design decisions
+
+## Activity Log
+
+Ralph automatically logs all activity to `.ralph/activity.log`:
+
+- Loop start/end events
+- Iteration start/end with duration
+- Errors and failures
+
+Run summaries are stored in `.ralph/runs/` for each iteration.
+
 ## Environment Variables
 
 | Variable                  | Default    | Description                    |
